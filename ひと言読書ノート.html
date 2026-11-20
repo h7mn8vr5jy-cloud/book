@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ひと言読書ノート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'Inter', 'sans-serif'],
+                        serif: ['"Noto Serif JP"', 'serif'],
+                    },
+                    colors: {
+                        paper: '#FAF7F2',
+                        paperSub: '#F2EDE4',
+                        paperCard: '#FFFDF9',
+                        ink: '#2E2B27',
+                        inkSub: '#6D675F',
+                        lineWarm: '#E5DEC9',
+                        moss: '#3B6954',
+                        mossHover: '#2E5342',
+                        ochre: '#C47D3B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #FAF7F2;
+            color: #2E2B27;
+            font-feature-settings: "palt";
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        input[type="date"] {
+            color-scheme: light;
+        }
+        @keyframes fadeInSoft {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-soft {
+            animation: fadeInSoft 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-moss/20 selection:text-moss">
+
+    <!-- トースト通知 -->
+    <div id="toast-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 -translate-y-2 w-[92%] max-w-md">
+        <div id="toast-inner" class="bg-ink text-paperCard text-xs sm:text-sm font-medium px-4 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-center">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <main class="w-full max-w-2xl mx-auto px-4 pt-6 pb-14 sm:pt-9">
+
+        <!-- ヘッダー -->
+        <header class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-moss/12 border border-moss/20 flex items-center justify-center text-moss shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-serif text-xl sm:text-2xl font-bold tracking-tight text-ink">ひと言読書ノート</h1>
+                    <p class="text-xs text-inkSub">すきま時間にさっと記録、あなたの読書リズムをそっと可視化</p>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onclick="insertSampleData()"
+                class="text-xs font-bold bg-paperCard hover:bg-paperSub text-ink border border-lineWarm px-3.5 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+                <svg class="w-3.5 h-3.5 text-ochre" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <span>サンプルデータを挿入</span>
+            </button>
+        </header>
+
+        <!-- サマリー指標カード（3列） -->
+        <section aria-label="読書サマリー" class="grid grid-cols-3 gap-2.5 sm:gap-3.5 mb-5">
+            <div class="bg-paperCard border border-lineWarm rounded-2xl p-3.5 sm:p-4 text-center shadow-2xs">
+                <div class="text-[11px] sm:text-xs text-inkSub font-medium mb-1">累計読書時間</div>
+                <div class="font-serif text-lg sm:text-2xl font-bold text-moss">
+                    <span id="summary-total-hours">0.0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">時間</span>
+                </div>
+                <div class="text-[10px] text-inkSub mt-0.5">(<span id="summary-total-minutes">0</span>分)</div>
+            </div>
+
+            <div class="bg-paperCard border border-lineWarm rounded-2xl p-3.5 sm:p-4 text-center shadow-2xs">
+                <div class="text-[11px] sm:text-xs text-inkSub font-medium mb-1">記録日数</div>
+                <div class="font-serif text-lg sm:text-2xl font-bold text-ink">
+                    <span id="summary-recorded-days">0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">日</span>
+                </div>
+                <div class="text-[10px] text-inkSub mt-0.5">全<span id="summary-log-count">0</span>件の記録</div>
+            </div>
+
+            <div class="bg-paperCard border border-lineWarm rounded-2xl p-3.5 sm:p-4 text-center shadow-2xs">
+                <div class="text-[11px] sm:text-xs text-inkSub font-medium mb-1">連続記録</div>
+                <div class="font-serif text-lg sm:text-2xl font-bold text-ochre">
+                    <span id="summary-streak-days">0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">日</span>
+                </div>
+                <div class="text-[10px] text-inkSub mt-0.5" id="summary-streak-sub">今日/昨日まで継続</div>
+            </div>
+        </section>
+
+        <!-- メインタブ切り替え -->
+        <nav aria-label="表示切り替え" class="bg-paperSub border border-lineWarm p-1 rounded-2xl grid grid-cols-2 gap-1 mb-6">
+            <button
+                type="button"
+                id="tab-log"
+                onclick="switchMainTab('log')"
+                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-paperCard text-ink shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+                <svg class="w-4 h-4 text-moss" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <span>記録とノート一覧</span>
+            </button>
+            <button
+                type="button"
+                id="tab-analytics"
+                onclick="switchMainTab('analytics')"
+                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-inkSub hover:text-ink transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+                <svg class="w-4 h-4 text-ochre" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>週・月ごとの読書量と分析</span>
+            </button>
+        </nav>
+
+        <!-- セクション1: 記録フォーム＆記録一覧 -->
+        <div id="section-log-view" class="space-y-7 fade-in-soft">
+
+            <!-- 超シンプル入力フォーム -->
+            <section aria-label="読書記録フォーム" class="bg-paperCard border border-lineWarm rounded-3xl p-5 sm:p-6 shadow-2xs">
+                <form id="reading-form" onsubmit="handleSaveLog(event)" class="space-y-4">
+
+                    <!-- 1. 日付入力 + 今日/昨日/一昨日ボタン -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="input-date" class="text-xs font-bold text-ink flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-moss"></span>
+                                <span>日付</span>
+                            </label>
+                            <span id="date-friendly-label" class="text-[11px] font-medium text-moss">今日</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="date"
+                                id="input-date"
+                                required
+                                onchange="handleDateChange(this.value)"
+                                class="w-full sm:flex-1 bg-paper border border-lineWarm focus:border-moss focus:ring-2 focus:ring-moss/15 rounded-xl px-3.5 py-2.5 text-sm text-ink font-medium outline-none transition-all"
+                            >
+                            <div class="grid grid-cols-3 gap-1.5 sm:flex sm:items-center shrink-0">
+                                <button type="button" data-day-offset="0" onclick="setQuickDate(0)" class="quick-date-btn py-2.5 px-3 rounded-xl text-xs font-bold border border-moss bg-moss/12 text-moss transition-all cursor-pointer">
+                                    今日
+                                </button>
+                                <button type="button" data-day-offset="-1" onclick="setQuickDate(-1)" class="quick-date-btn py-2.5 px-3 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">
+                                    昨日
+                                </button>
+                                <button type="button" data-day-offset="-2" onclick="setQuickDate(-2)" class="quick-date-btn py-2.5 px-3 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">
+                                    一昨日
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 書名入力 + 過去の書名ワンタップ選択チップ -->
+                    <div>
+                        <label for="input-title" class="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-moss"></span>
+                            <span>書名</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="input-title"
+                            required
+                            placeholder="例：思考の整理学、コンビニ人間..."
+                            class="w-full bg-paper border border-lineWarm focus:border-moss focus:ring-2 focus:ring-moss/15 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-ink placeholder:text-inkSub/60 outline-none transition-all"
+                        >
+                        <div id="recent-book-chips-wrap" class="hidden mt-2">
+                            <div class="text-[11px] text-inkSub mb-1">よく読む・最近記録した本（タップで入力）:</div>
+                            <div id="recent-book-chips" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. 読書時間（分）：プリセットボタン + 自由入力 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="input-minutes" class="text-xs font-bold text-ink flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-ochre"></span>
+                                <span>読書時間（分）</span>
+                            </label>
+                            <span class="text-[11px] text-inkSub">ボタン選択または自由入力</span>
+                        </div>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-2">
+                            <button type="button" data-mins="10" onclick="selectPresetMinutes(10)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">10分</button>
+                            <button type="button" data-mins="15" onclick="selectPresetMinutes(15)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-bold border border-moss bg-moss/12 text-moss transition-all cursor-pointer">15分</button>
+                            <button type="button" data-mins="20" onclick="selectPresetMinutes(20)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">20分</button>
+                            <button type="button" data-mins="30" onclick="selectPresetMinutes(30)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">30分</button>
+                            <button type="button" data-mins="45" onclick="selectPresetMinutes(45)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">45分</button>
+                            <button type="button" data-mins="60" onclick="selectPresetMinutes(60)" class="preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer">60分</button>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input
+                                type="number"
+                                id="input-minutes"
+                                min="1"
+                                max="1440"
+                                value="15"
+                                required
+                                oninput="handleCustomMinutesInput(this.value)"
+                                class="w-full bg-paper border border-lineWarm focus:border-moss focus:ring-2 focus:ring-moss/15 rounded-xl px-3.5 py-2.5 pr-10 text-sm font-bold text-ink outline-none transition-all"
+                            >
+                            <span class="absolute right-3.5 text-xs font-medium text-inkSub">分</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. ひと言メモ（任意） -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="input-memo" class="text-xs font-bold text-ink flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-inkSub/50"></span>
+                                <span>ひと言メモ</span>
+                            </label>
+                            <span class="text-[11px] text-inkSub">任意・1行でもOK</span>
+                        </div>
+                        <input
+                            type="text"
+                            id="input-memo"
+                            maxlength="200"
+                            placeholder="心に残ったフレーズや気づきを短く..."
+                            class="w-full bg-paper border border-lineWarm focus:border-moss focus:ring-2 focus:ring-moss/15 rounded-xl px-3.5 py-2.5 text-sm text-ink placeholder:text-inkSub/60 outline-none transition-all"
+                        >
+                    </div>
+
+                    <!-- 5. 記録を保存ボタン -->
+                    <button
+                        type="submit"
+                        class="w-full bg-moss hover:bg-mossHover active:scale-[0.99] text-paperCard font-bold text-sm sm:text-base py-3.5 px-5 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>記録を保存</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- 読書ログ一覧 -->
+            <section aria-label="読書ログ一覧">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-serif text-base sm:text-lg font-bold text-ink">読書ログ一覧</h2>
+                        <span id="list-badge-count" class="text-xs font-medium bg-paperSub border border-lineWarm text-inkSub px-2.5 py-0.5 rounded-full">0件</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-inkSub">日付順（新しい順）</span>
+                        <button
+                            type="button"
+                            id="btn-clear-all"
+                            onclick="toggleClearAllConfirm(true)"
+                            class="hidden text-xs text-inkSub hover:text-red-700 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                        >
+                            全削除
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 全削除確認バナー -->
+                <div id="clear-all-confirm" class="hidden bg-red-50 border border-red-200 rounded-2xl p-3.5 mb-3 flex flex-wrap items-center justify-between gap-2 fade-in-soft">
+                    <span class="text-xs font-medium text-red-900">保存されているすべての読書記録を削除しますか？</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="toggleClearAllConfirm(false)" class="text-xs bg-white border border-red-200 text-ink px-3 py-1.5 rounded-xl font-medium cursor-pointer">キャンセル</button>
+                        <button type="button" onclick="clearAllLogs()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl font-bold cursor-pointer">削除する</button>
+                    </div>
+                </div>
+
+                <!-- ログカード一覧 -->
+                <div id="logs-container" class="space-y-3"></div>
+
+                <!-- 空状態 -->
+                <div id="empty-logs-box" class="bg-paperCard border border-dashed border-lineWarm rounded-3xl p-8 text-center">
+                    <p class="font-serif text-sm sm:text-base font-bold text-ink mb-1">まだ読書記録がありません</p>
+                    <p class="text-xs text-inkSub mb-4">上のフォームから今日の読書を記録するか、サンプルデータで動きを確かめてみましょう。</p>
+                    <button
+                        type="button"
+                        onclick="insertSampleData()"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-moss bg-moss/12 hover:bg-moss/20 px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                        <span>サンプルデータを挿入</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- セクション2: 週・月ごとの読書量と分析 -->
+        <div id="section-analytics-view" class="hidden space-y-6 fade-in-soft">
+
+            <!-- 期間別読書量グラフカード -->
+            <section aria-label="期間別読書量" class="bg-paperCard border border-lineWarm rounded-3xl p-5 sm:p-6 shadow-2xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                    <div>
+                        <h2 id="period-heading" class="font-serif text-base sm:text-lg font-bold text-ink">週ごとの読書量（月曜始まり・直近6週）</h2>
+                        <p class="text-xs text-inkSub mt-0.5">期間ごとの合計時間・記録回数・1日平均を表示します</p>
+                    </div>
+
+                    <!-- 週ごと / 月ごと 切り替え -->
+                    <div class="inline-flex bg-paperSub border border-lineWarm p-1 rounded-xl self-start sm:self-auto shrink-0">
+                        <button
+                            type="button"
+                            id="btn-mode-weekly"
+                            onclick="setAnalyticsMode('weekly')"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-paperCard text-ink shadow-2xs transition-all cursor-pointer"
+                        >
+                            週ごと
+                        </button>
+                        <button
+                            type="button"
+                            id="btn-mode-monthly"
+                            onclick="setAnalyticsMode('monthly')"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-inkSub hover:text-ink transition-all cursor-pointer"
+                        >
+                            月ごと
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 注目期間のサマリー（3項目） -->
+                <div class="grid grid-cols-3 gap-2.5 mb-6">
+                    <div class="bg-paper border border-lineWarm/80 rounded-2xl p-3">
+                        <div id="stat-period-total-label" class="text-[11px] text-inkSub mb-0.5">今週の合計時間</div>
+                        <div class="font-serif text-base sm:text-xl font-bold text-moss">
+                            <span id="stat-period-total-min">0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">分</span>
+                        </div>
+                    </div>
+                    <div class="bg-paper border border-lineWarm/80 rounded-2xl p-3">
+                        <div id="stat-period-count-label" class="text-[11px] text-inkSub mb-0.5">今週の記録回数</div>
+                        <div class="font-serif text-base sm:text-xl font-bold text-ink">
+                            <span id="stat-period-count">0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">回</span>
+                        </div>
+                    </div>
+                    <div class="bg-paper border border-lineWarm/80 rounded-2xl p-3">
+                        <div id="stat-period-avg-label" class="text-[11px] text-inkSub mb-0.5">今週の1日平均</div>
+                        <div class="font-serif text-base sm:text-xl font-bold text-ochre">
+                            <span id="stat-period-avg">0</span><span class="text-xs font-sans font-normal text-inkSub ml-0.5">分/日</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 棒グラフ表示エリア -->
+                <div id="bar-chart-area" class="space-y-3.5"></div>
+            </section>
+
+            <!-- 読書傾向・感想・週/月の分析レポートカード -->
+            <section aria-label="読書傾向と分析レポート" class="bg-gradient-to-br from-[#F4EFE6] to-[#EAE2D3] border border-lineWarm rounded-3xl p-5 sm:p-6 shadow-2xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="font-serif text-base sm:text-lg font-bold text-ink">読書傾向・感想・週/月の分析レポート</h2>
+                        <p class="text-xs text-inkSub mt-0.5">書名・時間・ひと言メモ・期間推移からローカルで自動分析します</p>
+                    </div>
+                    <button
+                        type="button"
+                        onclick="refreshAnalysisReport()"
+                        class="w-full sm:w-auto bg-ink hover:bg-ink/85 text-paperCard text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                        <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>分析レポートを更新</span>
+                    </button>
+                </div>
+
+                <div id="analysis-report-cards" class="space-y-3">
+                    <div class="bg-paperCard/95 border border-lineWarm/90 rounded-2xl p-4">
+                        <div class="text-xs font-bold text-moss mb-1.5">1. 読書傾向とテーマ・キーワード</div>
+                        <p id="report-tendency-text" class="text-xs sm:text-sm text-ink leading-relaxed"></p>
+                    </div>
+
+                    <div class="bg-paperCard/95 border border-lineWarm/90 rounded-2xl p-4">
+                        <div class="text-xs font-bold text-ochre mb-1.5">2. 感想とひと言メモから見える気づき</div>
+                        <p id="report-impression-text" class="text-xs sm:text-sm text-ink leading-relaxed"></p>
+                    </div>
+
+                    <div class="bg-paperCard/95 border border-lineWarm/90 rounded-2xl p-4">
+                        <div class="text-xs font-bold text-ink mb-1.5">3. 週ごと・月ごとのペース分析</div>
+                        <p id="report-period-text" class="text-xs sm:text-sm text-ink leading-relaxed"></p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="w-full max-w-2xl mx-auto px-4 pb-8 text-center">
+        <p class="text-[11px] text-inkSub">ひと言読書ノート — 記録はお使いのブラウザ（localStorage）に自動保存されます</p>
+    </footer>
+
+    <script>
+        // localStorage 保存キー
+        const STORAGE_KEY = 'hitokoto_reading_note_v2_logs';
+
+        // アプリ状態
+        let readingLogs = [];
+        let selectedMinutes = 15;
+        let selectedDate = '';
+        let currentTab = 'log'; // 'log' | 'analytics'
+        let analyticsMode = 'weekly'; // 'weekly' | 'monthly'
+        let toastTimer = null;
+
+        // 初期化処理
+        document.addEventListener('DOMContentLoaded', function () {
+            selectedDate = toLocalDateISO(new Date());
+            syncDateUI(selectedDate);
+            loadLogs();
+            sortLogsByDateDesc();
+            renderAll();
+        });
+
+        // ローカルタイムゾーンで YYYY-MM-DD を取得
+        function toLocalDateISO(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // YYYY-MM-DD をローカル Date に安全に変換
+        function parseLocalDateISO(isoStr) {
+            const parts = (isoStr || '').split('-');
+            if (parts.length !== 3) return new Date();
+            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        }
+
+        // 「今日」「昨日」「一昨日」または「M/D(曜)」形式で表示
+        function formatFriendlyDate(isoStr) {
+            const todayIso = toLocalDateISO(new Date());
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayIso = toLocalDateISO(yesterday);
+
+            const twoDaysAgo = new Date();
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+            const twoDaysAgoIso = toLocalDateISO(twoDaysAgo);
+
+            if (isoStr === todayIso) return '今日';
+            if (isoStr === yesterdayIso) return '昨日';
+            if (isoStr === twoDaysAgoIso) return '一昨日';
+
+            const d = parseLocalDateISO(isoStr);
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+            return `${d.getMonth() + 1}月${d.getDate()}日(${weekdays[d.getDay()]})`;
+        }
+
+        // 日付順（新しい日付が上、同日は作成順が上）に並び替え
+        function sortLogsByDateDesc() {
+            readingLogs.sort(function (a, b) {
+                if (a.date !== b.date) {
+                    return b.date.localeCompare(a.date);
+                }
+                return (b.createdAt || 0) - (a.createdAt || 0);
+            });
+        }
+
+        // localStorage から読み込み
+        function loadLogs() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) {
+                    readingLogs = [];
+                    return;
+                }
+                const parsed = JSON.parse(raw);
+                readingLogs = Array.isArray(parsed) ? parsed : [];
+            } catch (err) {
+                readingLogs = [];
+            }
+        }
+
+        // localStorage へ保存
+        function saveLogs() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(readingLogs));
+            } catch (err) {
+                showToast('保存領域の容量上限に達したため保存できませんでした');
+            }
+        }
+
+        // メインタブ切り替え
+        function switchMainTab(tabName) {
+            currentTab = tabName;
+            const logView = document.getElementById('section-log-view');
+            const analyticsView = document.getElementById('section-analytics-view');
+            const tabLog = document.getElementById('tab-log');
+            const tabAnalytics = document.getElementById('tab-analytics');
+
+            if (tabName === 'log') {
+                logView.classList.remove('hidden');
+                analyticsView.classList.add('hidden');
+                tabLog.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-paperCard text-ink shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer';
+                tabAnalytics.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-inkSub hover:text-ink transition-all flex items-center justify-center gap-2 cursor-pointer';
+            } else {
+                logView.classList.add('hidden');
+                analyticsView.classList.remove('hidden');
+                tabAnalytics.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-paperCard text-ink shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer';
+                tabLog.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-inkSub hover:text-ink transition-all flex items-center justify-center gap-2 cursor-pointer';
+                renderAnalytics();
+            }
+        }
+
+        // 今日 / 昨日 / 一昨日 ワンタップ選択
+        function setQuickDate(offsetDays) {
+            const target = new Date();
+            target.setDate(target.getDate() + offsetDays);
+            selectedDate = toLocalDateISO(target);
+            syncDateUI(selectedDate);
+        }
+
+        // 日付入力変更時
+        function handleDateChange(val) {
+            selectedDate = val || toLocalDateISO(new Date());
+            syncDateUI(selectedDate);
+        }
+
+        // 日付UIの同期
+        function syncDateUI(isoStr) {
+            const input = document.getElementById('input-date');
+            if (input && input.value !== isoStr) {
+                input.value = isoStr;
+            }
+            const friendly = document.getElementById('date-friendly-label');
+            if (friendly) {
+                friendly.textContent = formatFriendlyDate(isoStr);
+            }
+
+            const today = new Date();
+            let matchedOffset = null;
+            [0, -1, -2].forEach(function (off) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + off);
+                if (toLocalDateISO(d) === isoStr) {
+                    matchedOffset = off;
+                }
+            });
+
+            document.querySelectorAll('.quick-date-btn').forEach(function (btn) {
+                const off = Number(btn.getAttribute('data-day-offset'));
+                if (off === matchedOffset) {
+                    btn.className = 'quick-date-btn py-2.5 px-3 rounded-xl text-xs font-bold border border-moss bg-moss/12 text-moss transition-all cursor-pointer';
+                } else {
+                    btn.className = 'quick-date-btn py-2.5 px-3 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer';
+                }
+            });
+        }
+
+        // 読書時間プリセットボタン選択
+        function selectPresetMinutes(mins) {
+            selectedMinutes = mins;
+            const input = document.getElementById('input-minutes');
+            if (input) {
+                input.value = String(mins);
+            }
+            highlightPresetButton(mins);
+        }
+
+        // 自由入力時のプリセットハイライト更新
+        function handleCustomMinutesInput(val) {
+            const num = parseInt(val, 10);
+            selectedMinutes = Number.isNaN(num) || num < 1 ? 1 : num;
+            highlightPresetButton(selectedMinutes);
+        }
+
+        function highlightPresetButton(mins) {
+            document.querySelectorAll('.preset-min-btn').forEach(function (btn) {
+                const btnMins = Number(btn.getAttribute('data-mins'));
+                if (btnMins === mins) {
+                    btn.className = 'preset-min-btn py-2 px-2 rounded-xl text-xs font-bold border border-moss bg-moss/12 text-moss transition-all cursor-pointer';
+                } else {
+                    btn.className = 'preset-min-btn py-2 px-2 rounded-xl text-xs font-medium border border-lineWarm bg-paper hover:bg-paperSub text-ink transition-all cursor-pointer';
+                }
+            });
+        }
+
+        // 過去の書名チップをタップして入力
+        function applyBookTitleChip(title) {
+            const titleInput = document.getElementById('input-title');
+            const memoInput = document.getElementById('input-memo');
+            if (titleInput) {
+                titleInput.value = title;
+            }
+            if (memoInput) {
+                memoInput.focus();
+            }
+        }
+
+        // 記録を保存
+        function handleSaveLog(event) {
+            event.preventDefault();
+            const dateInput = document.getElementById('input-date');
+            const titleInput = document.getElementById('input-title');
+            const minutesInput = document.getElementById('input-minutes');
+            const memoInput = document.getElementById('input-memo');
+
+            const dateStr = (dateInput && dateInput.value) ? dateInput.value : toLocalDateISO(new Date());
+            const title = titleInput.value.trim();
+            const minutes = Math.max(1, Math.min(1440, parseInt(minutesInput.value, 10) || selectedMinutes || 15));
+            const memo = memoInput.value.trim();
+
+            if (!title) {
+                showToast('書名を入力してください');
+                return;
+            }
+
+            const newItem = {
+                id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                date: dateStr,
+                title: title,
+                minutes: minutes,
+                memo: memo,
+                createdAt: Date.now()
+            };
+
+            readingLogs.push(newItem);
+            sortLogsByDateDesc();
+            saveLogs();
+
+            titleInput.value = '';
+            memoInput.value = '';
+
+            renderAll();
+            showToast(`${formatFriendlyDate(dateStr)}の「${title}（${minutes}分）」を記録しました`);
+        }
+
+        // 単一ログ削除
+        function deleteLogById(id) {
+            readingLogs = readingLogs.filter(function (item) {
+                return item.id !== id;
+            });
+            saveLogs();
+            renderAll();
+            showToast('記録を削除しました');
+        }
+
+        // 全削除確認バナー表示切替
+        function toggleClearAllConfirm(show) {
+            const banner = document.getElementById('clear-all-confirm');
+            if (!banner) return;
+            if (show) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        // 全ログ削除実行
+        function clearAllLogs() {
+            readingLogs = [];
+            saveLogs();
+            toggleClearAllConfirm(false);
+            renderAll();
+            showToast('すべての読書記録を削除しました');
+        }
+
+        // サンプルデータ挿入
+        function insertSampleData() {
+            const makeIsoWithOffset = function (offsetDays) {
+                const d = new Date();
+                d.setDate(d.getDate() + offsetDays);
+                return toLocalDateISO(d);
+            };
+
+            const samples = [
+                {
+                    id: 'sample_1',
+                    date: makeIsoWithOffset(0),
+                    title: '思考の整理学',
+                    minutes: 20,
+                    memo: 'アイデアは寝かせることで形になる。朝起きてからの散歩で頭を空っぽにする時間を作りたい。',
+                    createdAt: Date.now() - 1000
+                },
+                {
+                    id: 'sample_2',
+                    date: makeIsoWithOffset(-1),
+                    title: 'コンビニ人間',
+                    minutes: 30,
+                    memo: '「ふつう」という枠組みを静かに見つめる視点が印象的。短い時間でも一気に読み進められた。',
+                    createdAt: Date.now() - 2000
+                },
+                {
+                    id: 'sample_3',
+                    date: makeIsoWithOffset(-2),
+                    title: '思考の整理学',
+                    minutes: 15,
+                    memo: 'グライダーではなく飛行機のように自分の疑問から発想する姿勢に共感。',
+                    createdAt: Date.now() - 3000
+                },
+                {
+                    id: 'sample_4',
+                    date: makeIsoWithOffset(-6),
+                    title: '夜と霧',
+                    minutes: 25,
+                    memo: 'どんな状況でも自分の態度を選ぶ自由が残されているという言葉が深く心に残った。',
+                    createdAt: Date.now() - 4000
+                },
+                {
+                    id: 'sample_5',
+                    date: makeIsoWithOffset(-10),
+                    title: '深夜特急 1',
+                    minutes: 45,
+                    memo: '旅立ち前の高揚感と少しの不安がリアルで、休日のカフェ時間が楽しくなった。',
+                    createdAt: Date.now() - 5000
+                },
+                {
+                    id: 'sample_6',
+                    date: makeIsoWithOffset(-18),
+                    title: '嫌われる勇気',
+                    minutes: 30,
+                    memo: '課題の分離を意識すると、相手の期待に振り回されすぎずに済むと感じた。',
+                    createdAt: Date.now() - 6000
+                },
+                {
+                    id: 'sample_7',
+                    date: makeIsoWithOffset(-32),
+                    title: 'サピエンス全史',
+                    minutes: 40,
+                    memo: '共通の物語を描く力が大きな協力を生んだという視点が新鮮。歴史の捉え方が広がった。',
+                    createdAt: Date.now() - 7000
+                }
+            ];
+
+            const existingIds = new Set(readingLogs.map(function (item) {
+                return item.id;
+            }));
+
+            const toAdd = samples.filter(function (s) {
+                return !existingIds.has(s.id);
+            });
+
+            if (toAdd.length === 0) {
+                showToast('サンプルデータはすでに追加されています');
+                return;
+            }
+
+            readingLogs = readingLogs.concat(toAdd);
+            sortLogsByDateDesc();
+            saveLogs();
+            renderAll();
+            showToast('サンプル読書データを追加しました');
+        }
+
+        // 全体描画
+        function renderAll() {
+            renderSummary();
+            renderRecentBookChips();
+            renderLogsList();
+            if (currentTab === 'analytics') {
+                renderAnalytics();
+            }
+        }
+
+        // サマリー指標の描画（累計時間・記録日数・連続日数）
+        function renderSummary() {
+            const totalMins = readingLogs.reduce(function (acc, item) {
+                return acc + (Number(item.minutes) || 0);
+            }, 0);
+            const totalHours = (totalMins / 60).toFixed(1);
+
+            const uniqueDatesSet = new Set(readingLogs.map(function (item) {
+                return item.date;
+            }));
+            const recordedDays = uniqueDatesSet.size;
+
+            const streak = calculateStreakDays(uniqueDatesSet);
+
+            document.getElementById('summary-total-hours').textContent = totalHours;
+            document.getElementById('summary-total-minutes').textContent = totalMins.toLocaleString();
+            document.getElementById('summary-recorded-days').textContent = String(recordedDays);
+            document.getElementById('summary-log-count').textContent = String(readingLogs.length);
+            document.getElementById('summary-streak-days').textContent = String(streak.days);
+            document.getElementById('summary-streak-sub').textContent = streak.subLabel;
+        }
+
+        // 連続記録日数の算出（今日または昨日から遡って連続している日数）
+        function calculateStreakDays(uniqueDatesSet) {
+            if (!uniqueDatesSet || uniqueDatesSet.size === 0) {
+                return { days: 0, subLabel: '今日からスタートしよう' };
+            }
+
+            const today = new Date();
+            const todayIso = toLocalDateISO(today);
+
+            const yesterday = new Date();
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayIso = toLocalDateISO(yesterday);
+
+            let cursor = null;
+            let subLabel = '';
+
+            if (uniqueDatesSet.has(todayIso)) {
+                cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                subLabel = '今日も記録済み！';
+            } else if (uniqueDatesSet.has(yesterdayIso)) {
+                cursor = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                subLabel = '昨日まで継続中';
+            } else {
+                return { days: 0, subLabel: '今日記録して再開' };
+            }
+
+            let count = 0;
+            while (uniqueDatesSet.has(toLocalDateISO(cursor))) {
+                count += 1;
+                cursor.setDate(cursor.getDate() - 1);
+            }
+
+            return { days: count, subLabel: subLabel };
+        }
+
+        // 過去書名ワンタップチップ描画
+        function renderRecentBookChips() {
+            const wrap = document.getElementById('recent-book-chips-wrap');
+            const container = document.getElementById('recent-book-chips');
+            if (!wrap || !container) return;
+
+            const seen = new Set();
+            const recentTitles = [];
+            for (let i = 0; i < readingLogs.length; i++) {
+                const t = readingLogs[i].title;
+                if (t && !seen.has(t)) {
+                    seen.add(t);
+                    recentTitles.push(t);
+                    if (recentTitles.length >= 6) break;
+                }
+            }
+
+            if (recentTitles.length === 0) {
+                wrap.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            wrap.classList.remove('hidden');
+            container.innerHTML = recentTitles.map(function (title) {
+                return `
+                    <button
+                        type="button"
+                        onclick="applyBookTitleChip('${escapeJsString(title)}')"
+                        class="text-xs bg-paper hover:bg-moss/10 text-ink hover:text-moss border border-lineWarm hover:border-moss/40 px-3 py-1 rounded-full transition-colors cursor-pointer"
+                    >
+                        ${escapeHtml(title)}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // 記録一覧描画
+        function renderLogsList() {
+            const listEl = document.getElementById('logs-container');
+            const emptyEl = document.getElementById('empty-logs-box');
+            const badgeEl = document.getElementById('list-badge-count');
+            const clearBtn = document.getElementById('btn-clear-all');
+
+            badgeEl.textContent = `${readingLogs.length}件`;
+
+            if (readingLogs.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.classList.remove('hidden');
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+            clearBtn.classList.remove('hidden');
+
+            listEl.innerHTML = readingLogs.map(function (item) {
+                const friendly = formatFriendlyDate(item.date);
+                const memoHtml = item.memo
+                    ? `<p class="text-xs sm:text-sm text-ink/90 bg-paper/90 border border-lineWarm/70 rounded-xl px-3.5 py-2 mt-2.5 leading-relaxed">${escapeHtml(item.memo)}</p>`
+                    : '';
+
+                return `
+                    <article class="bg-paperCard border border-lineWarm rounded-2xl p-4 shadow-2xs transition-all">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <span class="text-xs font-bold text-moss bg-moss/10 px-2.5 py-0.5 rounded-full">${escapeHtml(friendly)}</span>
+                                    <span class="text-[11px] text-inkSub">${escapeHtml(item.date)}</span>
+                                    <span class="text-xs font-bold text-ochre bg-ochre/10 px-2.5 py-0.5 rounded-full">${Number(item.minutes) || 0}分</span>
+                                </div>
+                                <h3 class="font-serif text-sm sm:text-base font-bold text-ink break-words">${escapeHtml(item.title)}</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onclick="deleteLogById('${escapeJsString(item.id)}')"
+                                aria-label="この記録を削除"
+                                title="削除"
+                                class="text-inkSub/70 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-colors cursor-pointer shrink-0"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        ${memoHtml}
+                    </article>
+                `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // 週ごと・月ごとの集計、棒グラフ、ローカル分析レポート生成
+        // =====================================================================
+
+        function setAnalyticsMode(mode) {
+            analyticsMode = mode;
+            const weeklyBtn = document.getElementById('btn-mode-weekly');
+            const monthlyBtn = document.getElementById('btn-mode-monthly');
+
+            if (mode === 'weekly') {
+                weeklyBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-paperCard text-ink shadow-2xs transition-all cursor-pointer';
+                monthlyBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium text-inkSub hover:text-ink transition-all cursor-pointer';
+            } else {
+                monthlyBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-paperCard text-ink shadow-2xs transition-all cursor-pointer';
+                weeklyBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium text-inkSub hover:text-ink transition-all cursor-pointer';
+            }
+
+            renderAnalytics();
+        }
+
+        // 週の月曜日を取得
+        function getMondayDate(dateObj) {
+            const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            const day = d.getDay(); // 0=日, 1=月...
+            const diff = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+            return d;
+        }
+
+        // 直近6週（月曜始まり）集計
+        function getWeeklyBuckets(countWeeks) {
+            const today = new Date();
+            const thisMonday = getMondayDate(today);
+            const buckets = [];
+
+            for (let i = countWeeks - 1; i >= 0; i--) {
+                const start = new Date(thisMonday);
+                start.setDate(thisMonday.getDate() - i * 7);
+
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+
+                const startIso = toLocalDateISO(start);
+                const endIso = toLocalDateISO(end);
+                const effectiveEnd = i === 0 ? today : end;
+                const elapsedDays = Math.max(1, Math.floor((effectiveEnd - start) / 86400000) + 1);
+
+                const matched = readingLogs.filter(function (item) {
+                    return item.date >= startIso && item.date <= endIso;
+                });
+
+                const totalMinutes = matched.reduce(function (sum, item) {
+                    return sum + (Number(item.minutes) || 0);
+                }, 0);
+                const count = matched.length;
+                const avgPerDay = Math.round((totalMinutes / elapsedDays) * 10) / 10;
+
+                const shortLabel = i === 0 ? '今週' : (i === 1 ? '先週' : `${start.getMonth() + 1}/${start.getDate()}週`);
+                const detailLabel = `${start.getMonth() + 1}/${start.getDate()}〜${end.getMonth() + 1}/${end.getDate()}`;
+
+                buckets.push({
+                    key: startIso,
+                    shortLabel: shortLabel,
+                    detailLabel: detailLabel,
+                    isCurrent: i === 0,
+                    totalMinutes: totalMinutes,
+                    count: count,
+                    avgPerDay: avgPerDay
+                });
+            }
+
+            return buckets;
+        }
+
+        // 直近6ヶ月集計
+        function getMonthlyBuckets(countMonths) {
+            const today = new Date();
+            const buckets = [];
+
+            for (let i = countMonths - 1; i >= 0; i--) {
+                const firstDay = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const lastDay = new Date(today.getFullYear(), today.getMonth() - i + 1, 0);
+                const prefix = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}`;
+
+                const effectiveEnd = i === 0 ? today : lastDay;
+                const elapsedDays = Math.max(1, effectiveEnd.getDate());
+
+                const matched = readingLogs.filter(function (item) {
+                    return (item.date || '').indexOf(prefix) === 0;
+                });
+
+                const totalMinutes = matched.reduce(function (sum, item) {
+                    return sum + (Number(item.minutes) || 0);
+                }, 0);
+                const count = matched.length;
+                const avgPerDay = Math.round((totalMinutes / elapsedDays) * 10) / 10;
+
+                buckets.push({
+                    key: prefix,
+                    shortLabel: `${firstDay.getMonth() + 1}月`,
+                    detailLabel: `${firstDay.getFullYear()}年${firstDay.getMonth() + 1}月`,
+                    isCurrent: i === 0,
+                    totalMinutes: totalMinutes,
+                    count: count,
+                    avgPerDay: avgPerDay
+                });
+            }
+
+            return buckets;
+        }
+
+        // 週/月グラフと注目指標、分析レポートの描画
+        function renderAnalytics() {
+            const isWeekly = analyticsMode === 'weekly';
+            const buckets = isWeekly ? getWeeklyBuckets(6) : getMonthlyBuckets(6);
+            const currentBucket = buckets[buckets.length - 1] || { totalMinutes: 0, count: 0, avgPerDay: 0 };
+
+            document.getElementById('period-heading').textContent = isWeekly
+                ? '週ごとの読書量（月曜始まり・直近6週）'
+                : '月ごとの読書量（直近6ヶ月）';
+
+            document.getElementById('stat-period-total-label').textContent = isWeekly ? '今週の合計時間' : '今月の合計時間';
+            document.getElementById('stat-period-count-label').textContent = isWeekly ? '今週の記録回数' : '今月の記録回数';
+            document.getElementById('stat-period-avg-label').textContent = isWeekly ? '今週の1日平均' : '今月の1日平均';
+
+            document.getElementById('stat-period-total-min').textContent = currentBucket.totalMinutes.toLocaleString();
+            document.getElementById('stat-period-count').textContent = currentBucket.count.toLocaleString();
+            document.getElementById('stat-period-avg').textContent = currentBucket.avgPerDay.toLocaleString();
+
+            // 棒グラフ描画
+            const chartArea = document.getElementById('bar-chart-area');
+            const maxVal = Math.max(60, ...buckets.map(function (b) {
+                return b.totalMinutes;
+            }));
+
+            chartArea.innerHTML = buckets.map(function (b) {
+                const pct = b.totalMinutes > 0
+                    ? Math.max(5, Math.round((b.totalMinutes / maxVal) * 100))
+                    : 0;
+                const barColor = b.isCurrent ? 'bg-moss' : 'bg-ochre/75';
+
+                return `
+                    <div>
+                        <div class="flex items-baseline justify-between text-xs mb-1">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="font-bold ${b.isCurrent ? 'text-moss' : 'text-ink'} shrink-0">${escapeHtml(b.shortLabel)}</span>
+                                <span class="text-[11px] text-inkSub truncate">${escapeHtml(b.detailLabel)}</span>
+                            </div>
+                            <div class="text-ink font-medium shrink-0 ml-2">
+                                <span class="font-bold">${b.totalMinutes.toLocaleString()}</span>分
+                                <span class="text-[11px] text-inkSub ml-1">(${b.count}回 / 平均${b.avgPerDay}分)</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-3.5 bg-paper border border-lineWarm/80 rounded-full overflow-hidden p-0.5">
+                            <div class="h-full ${barColor} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            refreshAnalysisReport(false);
+        }
+
+        // ローカルルール＆集計による分析レポート生成
+        function refreshAnalysisReport(showNotify) {
+            const tendencyEl = document.getElementById('report-tendency-text');
+            const impressionEl = document.getElementById('report-impression-text');
+            const periodEl = document.getElementById('report-period-text');
+
+            if (readingLogs.length === 0) {
+                tendencyEl.textContent = 'まだ記録がないため傾向を集計できません。まずは1件記録するか、「サンプルデータを挿入」を押してみてください。';
+                impressionEl.textContent = 'ひと言メモを残すと、あとから読み返したときにその日の気づきや気持ちを振り返りやすくなります。';
+                periodEl.textContent = '週ごと・月ごとの読書記録がたまっていくと、増減の波や無理のないペースが見えてきます。';
+                if (showNotify) showToast('記録を追加すると分析レポートが更新されます');
+                return;
+            }
+
+            // 1. 書名・時間・キーワードから読書傾向を抽出
+            const bookMinutesMap = {};
+            const bookCountMap = {};
+            const allMemos = [];
+
+            readingLogs.forEach(function (item) {
+                const t = item.title || '無題';
+                const m = Number(item.minutes) || 0;
+                bookMinutesMap[t] = (bookMinutesMap[t] || 0) + m;
+                bookCountMap[t] = (bookCountMap[t] || 0) + 1;
+                if (item.memo && item.memo.trim()) {
+                    allMemos.push(item.memo.trim());
+                }
+            });
+
+            const sortedBooks = Object.keys(bookMinutesMap).sort(function (a, b) {
+                return bookMinutesMap[b] - bookMinutesMap[a];
+            });
+
+            const avgSessionMin = Math.round(
+                readingLogs.reduce(function (s, l) { return s + (Number(l.minutes) || 0); }, 0) / readingLogs.length
+            );
+
+            const stylePhrase = avgSessionMin >= 35
+                ? `1回あたり平均${avgSessionMin}分と、腰を据えてじっくり読み込むスタイルです。`
+                : (avgSessionMin >= 15
+                    ? `1回あたり平均${avgSessionMin}分と、日常のすきま時間に無理なく積み重ねるスタイルです。`
+                    : `1回あたり平均${avgSessionMin}分と、短い時間でもこまめにページをめくる軽快なスタイルです。`);
+
+            const topBooksText = sortedBooks.slice(0, 3).map(function (title) {
+                return `『${title}』（${bookMinutesMap[title]}分・${bookCountMap[title]}回）`;
+            }).join('、');
+
+            // メモ内の頻出キーワード（2文字以上の漢字・カタカナ・重要語句）を軽く抽出
+            const keywordCandidates = ['思考', '習慣', '時間', '視点', '自分', '感情', '気づき', '旅', '言葉', '心', '人間', '自由', '変化'];
+            const joinedMemos = allMemos.join(' ');
+            const matchedKeywords = keywordCandidates.filter(function (kw) {
+                return joinedMemos.indexOf(kw) !== -1;
+            }).slice(0, 4);
+
+            const kwText = matchedKeywords.length > 0
+                ? `メモによく見られるキーワードは「${matchedKeywords.join('」「')}」で、日常の考え方や心の動きに関心が向いています。`
+                : `これからひと言メモが増えていくと、よく惹かれるテーマや言葉がよりくっきり浮かび上がってきます。`;
+
+            tendencyEl.textContent = `${stylePhrase} 特に読まれている本は ${topBooksText} です。${kwText}`;
+
+            // 2. 感想とひと言メモから見える気づき
+            const memoRatio = Math.round((allMemos.length / readingLogs.length) * 100);
+            const latestMemoItem = readingLogs.find(function (l) { return l.memo && l.memo.trim(); });
+
+            let memoInsight = `全${readingLogs.length}件のうち${allMemos.length}件（${memoRatio}%）にひと言メモが残っています。`;
+            if (latestMemoItem) {
+                memoInsight += ` 最近のメモ『${latestMemoItem.title}』の「${latestMemoItem.memo}」からは、読んだ内容を自分の生活や行動に結びつけようとする前向きな姿勢が伝わってきます。`;
+            } else {
+                memoInsight += ` メモが空欄でも記録を続けられているのが素晴らしい点です。気分の乗った日だけ1行添えてみましょう。`;
+            }
+            impressionEl.textContent = memoInsight;
+
+            // 3. 週ごと・月ごとのペース分析
+            const weekly = getWeeklyBuckets(6);
+            const monthly = getMonthlyBuckets(6);
+
+            const thisWeek = weekly[weekly.length - 1];
+            const lastWeek = weekly[weekly.length - 2];
+            const thisMonth = monthly[monthly.length - 1];
+            const lastMonth = monthly[monthly.length - 2];
+
+            let weekCompare = '';
+            if (lastWeek && lastWeek.totalMinutes > 0) {
+                const diffW = thisWeek.totalMinutes - lastWeek.totalMinutes;
+                if (diffW > 0) {
+                    weekCompare = `今週（${thisWeek.totalMinutes}分）は先週（${lastWeek.totalMinutes}分）より${diffW}分増えており、読書への集中度が高まっています。`;
+                } else if (diffW < 0) {
+                    weekCompare = `今週（${thisWeek.totalMinutes}分）は先週（${lastWeek.totalMinutes}分）より${Math.abs(diffW)}分落ち着いていますが、途切れず続けられている点が立派です。`;
+                } else {
+                    weekCompare = `今週（${thisWeek.totalMinutes}分）は先週と同じ時間で、安定したリズムを保っています。`;
+                }
+            } else {
+                weekCompare = `今週の合計は${thisWeek.totalMinutes}分（${thisWeek.count}回・1日平均${thisWeek.avgPerDay}分）です。`;
+            }
+
+            let monthCompare = `今月は${thisMonth.totalMinutes}分（${thisMonth.count}回）を記録しています。`;
+            if (lastMonth && lastMonth.totalMinutes > 0) {
+                monthCompare = `今月（${thisMonth.totalMinutes}分）と先月（${lastMonth.totalMinutes}分）を比べると、月単位でも読書の習慣が着実に形になっています。`;
+            }
+
+            periodEl.textContent = `${weekCompare} ${monthCompare}`;
+
+            if (showNotify) {
+                showToast('分析レポートを更新しました');
+            }
+        }
+
+        // トースト通知表示
+        function showToast(message) {
+            const box = document.getElementById('toast-box');
+            const msgEl = document.getElementById('toast-message');
+            if (!box || !msgEl) return;
+
+            msgEl.textContent = message;
+            box.classList.remove('opacity-0', '-translate-y-2');
+            box.classList.add('opacity-100', 'translate-y-0');
+
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
+            toastTimer = setTimeout(function () {
+                box.classList.remove('opacity-100', 'translate-y-0');
+                box.classList.add('opacity-0', '-translate-y-2');
+            }, 2600);
+        }
+
+        // HTMLエスケープ
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // インラインJS文字列用エスケープ
+        function escapeJsString(str) {
+            return String(str || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '');
+        }
+    </script>
+</body>
+</html>
